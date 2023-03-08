@@ -6,11 +6,54 @@
 /*   By: stan <stan@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/03/08 14:44:27 by stan              #+#    #+#             */
-/*   Updated: 2023/03/08 15:08:02 by stan             ###   ########.fr       */
+/*   Updated: 2023/03/08 17:05:12 by stan             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "server.hpp"
+
+// Fonction pour analyser la requête HTTP reçue
+ft::Request& ft::Server::parse_request() {
+    std::stringstream request_stream;                                                                   // création d'un flux pour stocker la requête reçue
+    ssize_t n = recv(_connect, _buffer, sizeof(_buffer), 0);                                              // réception des données depuis la socket
+    if (n > 0) {                                                                                        // si des données ont été reçues
+        request_stream << _buffer;                                                                      // stockage des données dans le flux
+        std::string line;                                                                               // création d'une variable pour stocker chaque ligne de la requête
+        bool headers_done = false;                                                                      // variable pour indiquer si les en-têtes ont été traitées ou non
+        while (std::getline(request_stream, line) && !line.empty()) {                                   // parcours de chaque ligne de la requête
+            if (!headers_done) {                                                                        // si les en-têtes n'ont pas encore été traités
+                if (line.find(":") != std::string::npos) {                                              // si la ligne correspond à un en-tête
+                    std::string header_name = line.substr(0, line.find(":"));                           // extraction du nom de l'en-tête
+                    std::string header_value = line.substr(line.find(":") + 1);                         // extraction de la valeur de l'en-tête
+                    _request.headers[header_name] = header_value;                                       // stockage de l'en-tête dans la structure Request
+                } else {                                                                                // si la ligne correspond à la première ligne de la requête (méthode, URI, protocole)
+                    headers_done = true;                                                                // on indique que les en-têtes ont été traités
+                    _request.method = line.substr(0, line.find(" "));                                   // extraction de la méthode HTTP
+                    _request.uri = line.substr(line.find(" ") + 1, line.rfind(" ") - line.find(" ") - 1); // extraction de l'URI
+                }
+            } else {                                                                                    // si les en-têtes ont été traités
+                _request.body += line + "\n";                                                           // on stocke le corps de la requête
+            }
+        }
+    }
+    return (_request);                                                                                  // on retourne la structure Request remplie avec les informations de la requête
+}
+
+std::string ft::Server::process_request(const ft::Request& request) {
+    std::string response;
+    if (request.method == "GET") {
+        // Traitement de la requête GET
+        // ...
+        // Exemple de réponse avec un code HTML minimal
+        std::string body = "<h1>Ceci est un test</h1>";
+        std::string body_size = std::to_string(body.size());
+        response = "HTTP/1.1 200 OK\r\nContent-Type:text/html\r\nContent-Length: " + body_size + "\r\n\r\n" + body;
+    } else {
+        // Requête non prise en charge
+        response = "HTTP/1.1 501 Not Implemented\r\nContent-Length: 0\r\n\r\n";
+    }
+    return (response);
+}
 
 ft::Server::Server()
 {
@@ -58,13 +101,18 @@ void ft::Server::listen_server()
 
 void ft::Server::response()
 {
-    // Read from the connection
-    read(_connect, _buffer, 100);
-    std::cout << "The message was: " << _buffer;
+    // Parse the request
+    parse_request();
+    std::cout << "Method: " << _request.method << std::endl;
+    std::cout << "URI: " << _request.uri << std::endl;
+    std::cout << "Body: " << _request.body << std::endl;
+    
+    // Process the request
+    std::string response_str = process_request(_request);
 
-    // Send a message to the connection
-    std::string response = "HTTP/1.1 200 OK\nContent-Type:text/html\nContent-Length: 16\n\n<h1>testing</h1>";
-    send(_connect, response.c_str(), response.size(), 0);
+    // Send the response to the client
+    send(_connect, response_str.c_str(), response_str.size(), 0);
+
 }
 
 void ft::Server::run()
@@ -77,6 +125,13 @@ void ft::Server::run()
     close(_connect);
     close(_socket);
 }
+
+int ft::Server::getSock() const { return (_socket); }
+
+int ft::Server::getConnect() const { return (_connect); }
+
+struct sockaddr_in ft::Server::getAddress() const { return (_address); }
+
 
 int main()
 {
