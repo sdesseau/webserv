@@ -6,7 +6,7 @@
 /*   By: stan <stan@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/03/08 14:44:29 by stan              #+#    #+#             */
-/*   Updated: 2023/03/08 16:42:19 by stan             ###   ########.fr       */
+/*   Updated: 2023/03/10 16:10:24 by stan             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,6 +19,7 @@
 #include <unistd.h> // for close and read
 #include <map> // for map
 #include <sstream> // for stringstream
+#include <fstream> // for ifstream
 
 namespace ft
 {
@@ -29,6 +30,7 @@ namespace ft
         std::map<std::string, std::string> headers;  // en-têtes de la requête
         std::string body;                            // corps de la requête
     };
+    
     class Server
     {
         private:

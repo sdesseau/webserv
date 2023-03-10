@@ -6,11 +6,12 @@
 /*   By: stan <stan@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/03/08 14:44:27 by stan              #+#    #+#             */
-/*   Updated: 2023/03/08 17:05:12 by stan             ###   ########.fr       */
+/*   Updated: 2023/03/10 17:04:14 by stan             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "server.hpp"
+#include "utils.cpp"
 
 // Fonction pour analyser la requête HTTP reçue
 ft::Request& ft::Server::parse_request() {
@@ -39,16 +40,55 @@ ft::Request& ft::Server::parse_request() {
     return (_request);                                                                                  // on retourne la structure Request remplie avec les informations de la requête
 }
 
-std::string ft::Server::process_request(const ft::Request& request) {
+
+std::string body_test = "<h1>Ceci est un test</h1>";
+
+std::string ft::Server::process_request(const ft::Request& request) 
+{
     std::string response;
-    if (request.method == "GET") {
+    if (request.method == "GET")
+    {
         // Traitement de la requête GET
-        // ...
-        // Exemple de réponse avec un code HTML minimal
-        std::string body = "<h1>Ceci est un test</h1>";
-        std::string body_size = std::to_string(body.size());
-        response = "HTTP/1.1 200 OK\r\nContent-Type:text/html\r\nContent-Length: " + body_size + "\r\n\r\n" + body;
-    } else {
+        if (request.uri == "/")
+        {
+            std::string body = read_file("index/index.html");
+            std::string body_size = std::to_string(body.size());
+            response = "HTTP/1.1 200 OK\r\nContent-Type:text/html\r\nContent-Length: " + body_size + "\r\n\r\n" + body;
+        }
+        else
+        {
+            // Si l'URI est différent de "/", renvoyer le fichier correspondant
+            std::string filename = request.uri.substr(1); // Supprimer le premier caractère "/"
+            std::string body = read_file(filename);
+            if (body == "") {
+                // Si le fichier n'existe pas, renvoyer une réponse 404
+                response = "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n";
+            }
+            else
+            {
+                if (filename == "lol")
+                {
+                    body = read_file("index/image.jpeg");
+                    std::string body_size = std::to_string(body.size());
+                    response = "HTTP/1.1 200 OK\r\nContent-Type:image/jpeg\r\nContent-Length: " + body_size + "\r\n\r\n" + body;
+                }
+                else if (filename == "subject")
+                {
+                    body = read_file("index/subject.pdf");
+                    std::string body_size = std::to_string(body.size());
+                    response = "HTTP/1.1 200 OK\r\nContent-Type:application/pdf\r\nContent-Length: " + body_size + "\r\n\r\n" + body;
+                }
+                else
+                {
+                    std::string body_size = std::to_string(body_test.size());
+                    response = "HTTP/1.1 200 OK\r\nContent-Type:text/html\r\nContent-Length: " + body_size + "\r\n\r\n" + body_test;
+                    body_test += "test";
+                }
+            }
+        }
+    }
+    else
+    {
         // Requête non prise en charge
         response = "HTTP/1.1 501 Not Implemented\r\nContent-Length: 0\r\n\r\n";
     }
@@ -79,6 +119,13 @@ void ft::Server::listen_server()
     _address.sin_family = AF_INET;
     _address.sin_addr.s_addr = INADDR_ANY;
     _address.sin_port = htons(9999); // htons is necessary to convert a number to network byte order
+
+    // Set SO_REUSEADDR option on the socket
+    int optval = 1;
+    if (setsockopt(_socket, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval)) < 0) {
+        std::cout << "Failed to set SO_REUSEADDR. errno: " << errno << std::endl;
+        exit(EXIT_FAILURE);
+    }
     if (bind(_socket, (struct sockaddr*)&_address, sizeof(_address)) < 0) {
         std::cout << "Failed to bind to port 9999. errno: " << errno << std::endl;
         exit(EXIT_FAILURE);
@@ -136,6 +183,7 @@ struct sockaddr_in ft::Server::getAddress() const { return (_address); }
 int main()
 {
     ft::Server serv;
-    serv.run();
+    while (1)
+        serv.run();
     return 0;
 }
