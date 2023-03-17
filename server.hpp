@@ -6,7 +6,7 @@
 /*   By: stan <stan@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/03/08 14:44:29 by stan              #+#    #+#             */
-/*   Updated: 2023/03/10 16:10:24 by stan             ###   ########.fr       */
+/*   Updated: 2023/03/15 02:00:00 by stan             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,6 +20,8 @@
 #include <map> // for map
 #include <sstream> // for stringstream
 #include <fstream> // for ifstream
+#include <sys/poll.h> // for poll
+#include <sys/ioctl.h> // for ioctl
 
 namespace ft
 {
@@ -37,18 +39,19 @@ namespace ft
             int _socket;
             int _connect;
             struct sockaddr_in _address;
-            char _buffer[1024];
+            char _buffer[4096];
             Request _request;
         public:
             Server();
             ~Server();
             
-            void run();
+            void run(int argc, char** argv);
             void create_socket();
             void listen_server();
             void response();
             Request& parse_request();
             std::string process_request(const Request& request);
+            void create_poll();
             
             int getSock() const;
             int getConnect() const;
